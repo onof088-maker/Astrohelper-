@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AstroHelper - Space Mission Management</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Font - Inter & Orbitron -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        space: {
+                            900: '#060913',
+                            800: '#0f172a',
+                            700: '#1e293b',
+                            card: 'rgba(30, 41, 59, 0.65)',
+                            border: 'rgba(255, 255, 255, 0.12)',
+                        },
+                        astro: {
+                            cyan: '#38bdf8',
+                            blue: '#3b82f6',
+                            purple: '#a855f7',
+                            emerald: '#10b981',
+                            pink: '#ec4899',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Orbitron', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #060913;
+            color: #f8fafc;
+            overflow-x: hidden;
+        }
+
+        /* Starry background animation */
+        .stars-bg {
+            background-image: 
+                radial-gradient(2px 2px at 20px 30px, #ffffff, rgba(0,0,0,0)),
+                radial-gradient(2px 2px at 40px 70px, rgba(255,255,255,0.8), rgba(0,0,0,0)),
+                radial-gradient(1px 1px at 90px 40px, #ffffff, rgba(0,0,0,0)),
+                radial-gradient(2px 2px at 160px 120px, rgba(255,255,255,0.9), rgba(0,0,0,0)),
+                radial-gradient(1.5px 1.5px at 230px 190px, rgba(255,255,255,0.7), rgba(0,0,0,0)),
+                radial-gradient(2px 2px at 300px 80px, #ffffff, rgba(0,0,0,0));
+            background-repeat: repeat;
+            background-size: 350px 350px;
+            animation: stars 120s linear infinite;
+        }
+
+        @keyframes stars {
+            from { background-position: 0 0; }
+            to { background-position: 1000px 1000px; }
+        }
+
+        /* Glassmorphism styling */
+        .glass-panel {
+            background: rgba(18, 24, 43, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .glass-card {
+            background: rgba(30, 41, 59, 0.55);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.25s ease-out;
+        }
+
+        .glass-card:hover {
+            border-color: rgba(56, 189, 248, 0.4);
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.15);
+        }
+
+        /* Pulsing Glow effects */
+        .glow-cyan {
+            box-shadow: 0 0 25px rgba(56, 189, 248, 0.4);
+        }
+        .glow-purple {
+            box-shadow: 0 0 25px rgba(168, 85, 247, 0.4);
+        }
+
+        /* Smooth Screen Transitions */
+        .screen-tab {
+            display: none;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        .screen-tab.active {
+            display: flex;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #060913;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #38bdf8;
+        }
+    </style>
+</head>
+<body class="h-full text-slate-100 stars-bg flex flex-col justify-between items-center min-h-screen">
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Main Container Simulation (Mobile/Tablet Centered Frame style) -->
+    <div class="w-full max-w-md h-full min-h-screen sm:min-h-[92vh] sm:my-auto flex flex-col justify-between glass-panel sm:rounded-3xl relative overflow-hidden border-0 sm:border border-slate-700/50 shadow-2xl">
+
+        <!-- Top Header Bar (Shown when active on operational screens) -->
+        <header id="app-header" class="hidden px-5 py-4 border-b border-white/10 flex items-center justify-between bg-slate-900/40 backdrop-blur-md z-10">
+            <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center text-white shadow-lg glow-cyan">
+                    <i class="fa-solid fa-rocket text-sm"></i>
+                </div>
+                <div>
+                    <h1 class="font-display font-bold text-base tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-sky-400 to-indigo-300">AstroHelper</h1>
+                    <p class="text-[10px] text-slate-400 flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                        Mission Day <span id="current-day-num">1</span> Active
+                    </p>
+                </div>
+            </div>
+            <button onclick="switchTab('settings-screen')" class="w-9 h-9 rounded-xl glass-card flex items-center justify-center text-slate-300 hover:text-sky-400 transition">
+                <i class="fa-solid fa-gear"></i>
+            </button>
+        </header>
+
+        <!-- Dynamic Main Content Area -->
+        <main class="flex-1 flex flex-col overflow-y-auto px-5 py-6 relative z-0">
+
+            <!-- 1. WELCOME SCREEN -->
+            <section id="welcome-screen" class="screen-tab active flex-col justify-between items-center text-center my-auto py-8">
+                <div class="flex flex-col items-center my-auto">
+                    <!-- Glowing Rocket Launch Icon -->
+                    <div class="relative mb-8">
+                        <div class="absolute inset-0 bg-sky-500/20 rounded-full blur-2xl transform scale-150 animate-pulse"></div>
+                        <div class="w-28 h-28 rounded-3xl bg-gradient-to-br from-slate-800 to-slate-900 border border-sky-500/30 flex items-center justify-center text-sky-400 text-5xl shadow-2xl glow-cyan transform hover:scale-105 transition-all duration-300">
+                            <i class="fa-solid fa-rocket transform -rotate-45"></i>
+                        </div>
+                    </div>
+
+                    <h2 class="font-display text-3xl font-black tracking-wide text-white mb-2">AstroHelper</h2>
+                    <p class="text-sky-300/80 text-sm max-w-xs font-light mb-8 leading-relaxed">
+                        Welcome, Astronaut!<br>Ready to start your mission?
+                    </p>
+
+                    <button onclick="startMission()" class="w-full max-w-xs py-4 px-6 rounded-2xl bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 text-white font-semibold shadow-lg glow-cyan flex items-center justify-center gap-3 hover:brightness-110 active:scale-95 transition-all text-base">
+                        <span>Start Mission</span>
+                        <i class="fa-solid fa-rocket text-sm"></i>
+                    </button>
+                </div>
+
+                <div class="mt-8 text-xs text-slate-400 font-light tracking-wide">
+                    By <span class="text-sky-400 font-medium">Mariam</span> – Innovator of Space
+                </div>
+            </section>
+
+            <!-- 2. TODAY'S MISSION TASKS SCREEN -->
+            <section id="tasks-screen" class="screen-tab flex-col gap-5">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="font-display text-xl font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-list-check text-sky-400"></i> Today's Mission Tasks
+                        </h2>
+                        <p class="text-xs text-slate-400 mt-1">Complete your checklist to ensure vessel stability</p>
+                    </div>
+                </div>
+
+                <!-- Mission Task Cards List -->
+                <div id="tasks-list" class="flex flex-col gap-3">
+                    <!-- Rendered dynamically with JS -->
+                </div>
+
+                <!-- Complete Day Button -->
+                <button onclick="finishDay()" class="w-full mt-4 py-3.5 px-5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-slate-200 font-medium flex items-center justify-center gap-2 transition hover:border-sky-400/50">
+                    <span>Finish Day</span>
+                    <i class="fa-solid fa-moon text-indigo-400"></i>
+                </button>
+            </section>
+
+            <!-- 3. SEND DATA TO EARTH SCREEN -->
+            <section id="send-data-screen" class="screen-tab flex-col gap-5">
+                <div>
+                    <h2 class="font-display text-xl font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-satellite-dish text-sky-400"></i> Send Data to Earth
+                    </h2>
+                    <p class="text-xs text-slate-400 mt-1">Transmit Telemetry & Reports back to Mission Control</p>
+                </div>
+
+                <div class="glass-card p-4 rounded-2xl flex flex-col gap-4">
+                    <textarea id="report-input" rows="4" placeholder="Type your mission report here..." 
+                        class="w-full bg-slate-900/60 border border-slate-700 rounded-xl p-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-sky-400 transition resize-none"></textarea>
+
+                    <!-- Attach file simulator -->
+                    <div class="flex items-center justify-between bg-slate-900/40 p-3 rounded-xl border border-dashed border-slate-700">
+                        <label for="file-upload" class="cursor-pointer flex items-center gap-2 text-xs text-slate-300 hover:text-sky-400 transition">
+                            <i class="fa-solid fa-paperclip text-sky-400"></i>
+                            <span id="file-name-label">Attach file/image</span>
+                        </label>
+                        <input id="file-upload" type="file" onchange="handleFileAttach(event)" class="hidden" />
+                        <span id="file-size-badge" class="hidden text-[10px] bg-sky-500/20 text-sky-300 px-2 py-0.5 rounded-md">Attached</span>
+                    </div>
+
+                    <!-- Transmission Progress Bar (Hidden by default) -->
+                    <div id="transmission-progress" class="hidden flex-col gap-1.5">
+                        <div class="flex justify-between text-xs text-slate-300">
+                            <span>Transmitting telemetry...</span>
+                            <span id="progress-percent">0%</span>
+                        </div>
+                        <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                            <div id="progress-fill" class="bg-gradient-to-r from-sky-400 to-emerald-400 h-full w-0 transition-all duration-200"></div>
+                        </div>
+                    </div>
+
+                    <!-- Success Message Banner -->
+                    <div id="data-success-banner" class="hidden items-center gap-2 bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs p-3 rounded-xl">
+                        <i class="fa-solid fa-circle-check text-base"></i>
+                        <span>Data successfully sent to Earth!</span>
+                    </div>
+
+                    <button id="send-btn" onclick="sendDataToEarth()" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 text-white font-medium shadow-md glow-cyan flex items-center justify-center gap-2 hover:brightness-110 active:scale-95 transition">
+                        <span>Send Now</span>
+                        <i class="fa-solid fa-paper-plane text-xs"></i>
+                    </button>
+                </div>
+            </section>
+
+            <!-- 4. MISSION LOG SCREEN -->
+            <section id="log-screen" class="screen-tab flex-col gap-5">
+                <div>
+                    <h2 class="font-display text-xl font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-book-bookmark text-sky-400"></i> Mission Log
+                    </h2>
+                    <p class="text-xs text-slate-400 mt-1">Keep track of personal observations and captain logs</p>
+                </div>
+
+                <div class="glass-card p-4 rounded-2xl flex flex-col gap-4">
+                    <textarea id="log-input" rows="6" placeholder="Type your mission notes here..." 
+                        class="w-full bg-slate-900/60 border border-slate-700 rounded-xl p-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-sky-400 transition resize-none"></textarea>
+
+                    <button onclick="saveMissionLog()" class="w-full py-3.5 rounded-xl bg-slate-800 border border-slate-700 hover:border-sky-400/50 text-slate-100 font-medium flex items-center justify-center gap-2 transition">
+                        <i class="fa-solid fa-floppy-disk text-sky-400"></i>
+                        <span>Save Log</span>
+                    </button>
+                </div>
+
+                <!-- Previous Logs Preview -->
+                <div class="flex flex-col gap-2 mt-2">
+                    <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Saved Logs History</h3>
+                    <div id="logs-history" class="flex flex-col gap-2 max-h-48 overflow-y-auto">
+                        <!-- Rendered via JS -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- 5. MISSION ACHIEVEMENTS SCREEN -->
+            <section id="achievements-screen" class="screen-tab flex-col gap-5">
+                <div>
+                    <h2 class="font-display text-xl font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-trophy text-amber-400"></i> Mission Achievements
+                    </h2>
+                    <p class="text-xs text-slate-400 mt-1">Track your progress and unlocked milestones</p>
+                </div>
+
+                <!-- Progress Bar Card -->
+                <div class="glass-card p-5 rounded-2xl flex flex-col gap-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-medium text-slate-300">Overall Mission Completion</span>
+                        <span id="overall-progress-text" class="font-display font-bold text-sky-400 text-lg">0%</span>
+                    </div>
+                    <div class="w-full bg-slate-900/80 h-3.5 rounded-full p-0.5 border border-slate-700/50">
+                        <div id="overall-progress-bar" class="bg-gradient-to-r from-sky-400 via-indigo-500 to-purple-500 h-full rounded-full w-0 transition-all duration-500 shadow-sm"></div>
+                    </div>
+                </div>
+
+                <!-- Badges / Achievements List -->
+                <div class="flex flex-col gap-3">
+                    <!-- Achievement 1 -->
+                    <div class="glass-card p-4 rounded-xl flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-xl bg-slate-800/80 border border-slate-700 flex items-center justify-center text-sky-400 text-xl shrink-0">
+                            <i class="fa-solid fa-moon"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h4 class="text-sm font-semibold text-slate-100" id="achieve-tasks-title">Completed 0 missions!</h4>
+                            <p class="text-xs text-slate-400">Finish all daily task items</p>
+                        </div>
+                    </div>
+
+                    <!-- Achievement 2 -->
+                    <div class="glass-card p-4 rounded-xl flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-xl bg-slate-800/80 border border-slate-700 flex items-center justify-center text-purple-400 text-xl shrink-0">
+                            <i class="fa-solid fa-satellite"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h4 class="text-sm font-semibold text-slate-100" id="achieve-data-title">Sent data 0 times!</h4>
+                            <p class="text-xs text-slate-400">Transmit reports back home</p>
+                        </div>
+                    </div>
+
+                    <!-- Achievement 3 -->
+                    <div class="glass-card p-4 rounded-xl flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-xl bg-slate-800/80 border border-slate-700 flex items-center justify-center text-amber-400 text-xl shrink-0">
+                            <i class="fa-solid fa-star"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h4 class="text-sm font-semibold text-slate-100">Perfect log streak!</h4>
+                            <p class="text-xs text-slate-400" id="achieve-log-desc">Keep active mission logs saved</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 6. SETTINGS & ABOUT SCREEN -->
+            <section id="settings-screen" class="screen-tab flex-col gap-5">
+                <div>
+                    <h2 class="font-display text-xl font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-sliders text-sky-400"></i> Settings
+                    </h2>
+                    <p class="text-xs text-slate-400 mt-1">Configure application preferences</p>
+                </div>
+
+                <div class="glass-card p-4 rounded-2xl flex flex-col gap-3">
+                    <!-- Sound Toggle -->
+                    <div class="flex items-center justify-between p-2">
+                        <span class="text-sm text-slate-200">Sound Effects</span>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="sound-toggle" class="sr-only peer" checked onchange="saveSettings()">
+                            <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-500"></div>
+                        </label>
+                    </div>
+
+                    <div class="h-px bg-slate-800"></div>
+
+                    <!-- Theme -->
+                    <div class="flex items-center justify-between p-2">
+                        <span class="text-sm text-slate-200">Theme</span>
+                        <span class="text-xs bg-slate-800 text-sky-400 px-3 py-1 rounded-lg border border-slate-700 font-mono">Dark Space</span>
+                    </div>
+
+                    <div class="h-px bg-slate-800"></div>
+
+                    <!-- Language -->
+                    <div class="flex items-center justify-between p-2">
+                        <span class="text-sm text-slate-200">Language</span>
+                        <span class="text-xs bg-slate-800 text-slate-300 px-3 py-1 rounded-lg border border-slate-700">English</span>
+                    </div>
+
+                    <div class="h-px bg-slate-800"></div>
+
+                    <!-- Restart Mission Button -->
+                    <button onclick="restartMission()" class="w-full mt-2 py-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold hover:bg-amber-500/20 transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-rotate-right"></i> Restart Mission
+                    </button>
+
+                    <!-- Log Out Button -->
+                    <button onclick="logOut()" class="w-full py-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-semibold hover:bg-rose-500/20 transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-right-from-bracket"></i> Log Out
+                    </button>
+                </div>
+
+                <!-- About Section Card -->
+                <div class="glass-card p-5 rounded-2xl flex flex-col items-center text-center gap-2 mt-auto">
+                    <div class="w-10 h-10 rounded-full bg-sky-500/20 text-sky-400 flex items-center justify-center text-lg mb-1">
+                        <i class="fa-solid fa-globe"></i>
+                    </div>
+                    <h3 class="font-display font-bold text-base text-white">About AstroHelper</h3>
+                    <p class="text-xs text-slate-300 max-w-xs leading-relaxed">
+                        Helping astronauts stay organized and complete their daily missions efficiently.
+                    </p>
+                    <p class="text-xs text-sky-400 italic mt-1">"Every mission starts with a small step 🚀"</p>
+                    <div class="text-[11px] text-slate-400 mt-2">
+                        Created by: <span class="text-slate-200 font-medium">Mariam</span><br>
+                        Version 1.0 | <a href="mailto:astrohelper@spaceapp.com" class="text-sky-400 hover:underline">astrohelper@spaceapp.com</a>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Bottom Navigation Bar (Shown when active) -->
+        <nav id="app-nav" class="hidden px-2 py-3 bg-slate-900/80 backdrop-blur-xl border-t border-white/10 z-10">
+            <div class="flex items-center justify-around">
+                <button onclick="switchTab('tasks-screen')" id="nav-tasks-screen" class="nav-btn flex flex-col items-center gap-1 text-slate-400 hover:text-sky-400 text-xs transition">
+                    <i class="fa-solid fa-list-check text-base"></i>
+                    <span class="text-[10px]">Tasks</span>
+                </button>
+                <button onclick="switchTab('send-data-screen')" id="nav-send-data-screen" class="nav-btn flex flex-col items-center gap-1 text-slate-400 hover:text-sky-400 text-xs transition">
+                    <i class="fa-solid fa-satellite-dish text-base"></i>
+                    <span class="text-[10px]">Data</span>
+                </button>
+                <button onclick="switchTab('log-screen')" id="nav-log-screen" class="nav-btn flex flex-col items-center gap-1 text-slate-400 hover:text-sky-400 text-xs transition">
+                    <i class="fa-solid fa-book text-base"></i>
+                    <span class="text-[10px]">Log</span>
+                </button>
+                <button onclick="switchTab('achievements-screen')" id="nav-achievements-screen" class="nav-btn flex flex-col items-center gap-1 text-slate-400 hover:text-sky-400 text-xs transition">
+                    <i class="fa-solid fa-trophy text-base"></i>
+                    <span class="text-[10px]">Badges</span>
+                </button>
+                <button onclick="switchTab('settings-screen')" id="nav-settings-screen" class="nav-btn flex flex-col items-center gap-1 text-slate-400 hover:text-sky-400 text-xs transition">
+                    <i class="fa-solid fa-sliders text-base"></i>
+                    <span class="text-[10px]">Settings</span>
+                </button>
+            </div>
+        </nav>
+    </div>
+
+    <script>
+        // Default Tasks Data
+        const defaultTasks = [
+            { id: 1, text: "Check spaceship systems", icon: "fa-wrench", completed: false },
+            { id: 2, text: "Conduct oxygen test", icon: "fa-vial", completed: false },
+            { id: 3, text: "Send data to Earth", icon: "fa-satellite", completed: false },
+            { id: 4, text: "Eat meal and rest", icon: "fa-utensils", completed: false },
+            { id: 5, text: "Log mission notes", icon: "fa-comment-dots", completed: false }
+        ];
+
+        // State Management
+        let appState = {
+            day: 1,
+            tasks: [...defaultTasks],
+            sentDataCount: 0,
+            logs: [],
+            soundEnabled: true,
+            isStarted: false
+        };
+
+        // Initialize Application
+        window.addEventListener('DOMContentLoaded', () => {
+            loadStateFromStorage();
+            renderTasks();
+            renderLogsHistory();
+            updateAchievements();
+
+            if (appState.isStarted) {
+                showAppUI();
+                switchTab('tasks-screen');
+            } else {
+                switchTab('welcome-screen');
+            }
+        });
+
+        // Save State to Local Storage
+        function saveState() {
+            localStorage.setItem('astro_helper_state', JSON.stringify(appState));
+            updateAchievements();
+        }
+
+        // Load State from Local Storage
+        function loadStateFromStorage() {
+            const saved = localStorage.getItem('astro_helper_state');
+            if (saved) {
+                try {
+                    appState = { ...appState, ...JSON.parse(saved) };
+                } catch (e) {
+                    console.error('Could not load state', e);
+                }
+            }
+        }
+
+        function playBeep(freq = 600, duration = 0.1) {
+            if (!appState.soundEnabled) return;
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.value = freq;
+                gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch (e) {}
+        }
+
+        // UI View Navigation Manager
+        function switchTab(tabId) {
+            playBeep(800, 0.05);
+
+            document.querySelectorAll('.screen-tab').forEach(screen => {
+                screen.classList.remove('active');
+            });
+
+            const targetScreen = document.getElementById(tabId);
+            if (targetScreen) {
+                targetScreen.classList.add('active');
+            }
+
+            // Highlight Active Nav Button
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('text-sky-400');
+                btn.classList.add('text-slate-400');
+            });
+
+            const activeNav = document.getElementById(`nav-${tabId}`);
+            if (activeNav) {
+                activeNav.classList.remove('text-slate-400');
+                activeNav.classList.add('text-sky-400');
+            }
+        }
+
+        function showAppUI() {
+            document.getElementById('app-header').classList.remove('hidden');
+            document.getElementById('app-nav').classList.remove('hidden');
+        }
+
+        // 1. Welcome Screen Action
+        function startMission() {
+            appState.isStarted = true;
+            saveState();
+            showAppUI();
+            switchTab('tasks-screen');
+            showToast('Mission Launched! Welcome aboard, Astronaut.');
+        }
+
+        // 2. Mission Tasks Actions
+        function renderTasks() {
+            const container = document.getElementById('tasks-list');
+            container.innerHTML = '';
+
+            document.getElementById('current-day-num').innerText = appState.day;
+
+            appState.tasks.forEach(task => {
+                const taskCard = document.createElement('div');
+                taskCard.className = `glass-card p-4 rounded-xl flex items-center justify-between border ${task.completed ? 'border-emerald-500/30 bg-emerald-950/10' : 'border-slate-800'}`;
+                
+                taskCard.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center ${task.completed ? 'text-emerald-400' : 'text-sky-400'}">
+                            <i class="fa-solid ${task.icon}"></i>
+                        </div>
+                        <span class="text-sm font-medium ${task.completed ? 'line-through text-slate-400' : 'text-slate-100'}">${task.text}</span>
+                    </div>
+                    <button onclick="toggleTask(${task.id})" class="px-4 py-2 rounded-lg text-xs font-semibold transition-all ${task.completed ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700'}">
+                        ${task.completed ? '<i class="fa-solid fa-check mr-1"></i> Done' : 'Pending'}
+                    </button>
+                `;
+                container.appendChild(taskCard);
+            });
+        }
+
+        function toggleTask(id) {
+            appState.tasks = appState.tasks.map(t => {
+                if (t.id === id) {
+                    const newState = !t.completed;
+                    if (newState) playBeep(900, 0.15);
+                    return { ...t, completed: newState };
+                }
+                return t;
+            });
+            saveState();
+            renderTasks();
+        }
+
+        function finishDay() {
+            playBeep(400, 0.2);
+            appState.day += 1;
+            // Reset daily tasks
+            appState.tasks = appState.tasks.map(t => ({ ...t, completed: false }));
+            saveState();
+            renderTasks();
+            showToast(`Day ${appState.day - 1} completed! Advanced to Day ${appState.day}.`);
+        }
+
+        // 3. Send Data Actions
+        function handleFileAttach(e) {
+            const file = e.target.files[0];
+            if (file) {
+                document.getElementById('file-name-label').innerText = file.name;
+                document.getElementById('file-size-badge').classList.remove('hidden');
+                showToast('File attached ready for transmission.');
+            }
+        }
+
+        function sendDataToEarth() {
+            const reportText = document.getElementById('report-input').value.trim();
+            const btn = document.getElementById('send-btn');
+            const progressBox = document.getElementById('transmission-progress');
+            const progressFill = document.getElementById('progress-fill');
+            const progressText = document.getElementById('progress-percent');
+            const banner = document.getElementById('data-success-banner');
+
+            btn.disabled = true;
+            btn.classList.add('opacity-50');
+            progressBox.classList.remove('hidden');
+            banner.classList.add('hidden');
+
+            let width = 0;
+            const interval = setInterval(() => {
+                width += 10;
+                progressFill.style.width = width + '%';
+                progressText.innerText = width + '%';
+                playBeep(500 + width * 5, 0.05);
+
+                if (width >= 100) {
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        progressBox.classList.add('hidden');
+                        banner.classList.remove('hidden');
+                        banner.classList.add('flex');
+                        btn.disabled = false;
+                        btn.classList.remove('opacity-50');
+
+                        // Update State
+                        appState.sentDataCount += 1;
+                        saveState();
+
+                        // Auto mark "Send data to Earth" task if not completed
+                        const task = appState.tasks.find(t => t.id === 3);
+                        if (task && !task.completed) {
+                            task.completed = true;
+                            renderTasks();
+                        }
+
+                        document.getElementById('report-input').value = '';
+                        document.getElementById('file-name-label').innerText = 'Attach file/image';
+                        document.getElementById('file-size-badge').classList.add('hidden');
+
+                        showToast('Data transmitted to Mission Control!');
+                    }, 300);
+                }
+            }, 100);
+        }
+
+        // 4. Mission Log Actions
+        function saveMissionLog() {
+            const logInput = document.getElementById('log-input');
+            const text = logInput.value.trim();
+            if (!text) {
+                showToast('Please type a note before saving!', 'error');
+                return;
+            }
+
+            const newLog = {
+                id: Date.now(),
+                text: text,
+                date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            };
+
+            appState.logs.unshift(newLog);
+
+            // Auto mark "Log mission notes" task if not completed
+            const task = appState.tasks.find(t => t.id === 5);
+            if (task && !task.completed) {
+                task.completed = true;
+                renderTasks();
+            }
+
+            saveState();
+            renderLogsHistory();
+            logInput.value = '';
+            showToast('Log saved successfully!');
+            playBeep(700, 0.1);
+        }
+
+        function renderLogsHistory() {
+            const container = document.getElementById('logs-history');
+            container.innerHTML = '';
+
+            if (appState.logs.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-500 italic">No logs recorded yet.</p>`;
+                return;
+            }
+
+            appState.logs.forEach(log => {
+                const card = document.createElement('div');
+                card.className = "p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-xs text-slate-300 flex flex-col gap-1";
+                card.innerHTML = `
+                    <div class="flex justify-between text-[10px] text-slate-400">
+                        <span>Entry</span>
+                        <span>${log.date}</span>
+                    </div>
+                    <p class="text-slate-200">${log.text}</p>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // 5. Achievements Calculator
+        function updateAchievements() {
+            const totalTasks = appState.tasks.length;
+            const completedCount = appState.tasks.filter(t => t.completed).length;
+            const taskPct = Math.round((completedCount / totalTasks) * 100);
+
+            document.getElementById('overall-progress-text').innerText = `${taskPct}%`;
+            document.getElementById('overall-progress-bar').style.width = `${taskPct}%`;
+
+            document.getElementById('achieve-tasks-title').innerText = `Completed ${completedCount}/${totalTasks} tasks!`;
+            document.getElementById('achieve-data-title').innerText = `Sent data ${appState.sentDataCount} times!`;
+            document.getElementById('achieve-log-desc').innerText = `${appState.logs.length} saved log entries`;
+        }
+
+        // 6. Settings Actions
+        function saveSettings() {
+            appState.soundEnabled = document.getElementById('sound-toggle').checked;
+            saveState();
+            showToast('Settings saved.');
+        }
+
+        function restartMission() {
+            if (confirm('Are you sure you want to reset all mission progress?')) {
+                appState.day = 1;
+                appState.tasks = [...defaultTasks];
+                appState.sentDataCount = 0;
+                appState.logs = [];
+                saveState();
+                renderTasks();
+                renderLogsHistory();
+                switchTab('tasks-screen');
+                showToast('Mission reset successfully.');
+            }
+        }
+
+        function logOut() {
+            appState.isStarted = false;
+            saveState();
+            document.getElementById('app-header').classList.add('hidden');
+            document.getElementById('app-nav').classList.add('hidden');
+            switchTab('welcome-screen');
+            showToast('Logged out of mission terminal.');
+        }
+
+        // Toast Helper
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `pointer-events-auto px-4 py-2.5 rounded-xl text-xs font-medium border flex items-center gap-2 shadow-xl transition-all duration-300 transform translate-y-2 opacity-0 ${
+                type === 'error' ? 'bg-rose-900/90 border-rose-500/40 text-rose-200' : 'bg-slate-800/95 border-sky-400/40 text-sky-200'
+            }`;
+            toast.innerHTML = `<i class="fa-solid ${type === 'error' ? 'fa-circle-exclamation text-rose-400' : 'fa-circle-info text-sky-400'}"></i> <span>${message}</span>`;
+            
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</htm
